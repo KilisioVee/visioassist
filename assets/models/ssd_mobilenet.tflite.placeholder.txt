@@ -1,0 +1,41 @@
+🚨 IMPORTANT: ADD YOUR TFLITE MODEL HERE 🚨
+
+This file is a placeholder. You MUST add a real TensorFlow Lite object detection model file here.
+
+STEPS:
+======
+
+1. Download an SSD MobileNet TFLite model:
+   - TensorFlow Hub: https://tfhub.dev/google/lite-model/object_detection/mobile_ssd/1
+   - TensorFlow Lite: https://www.tensorflow.org/lite/guide/hosted_models
+   - Or use any COCO-trained object detection TFLite model
+
+2. Rename your model file to: ssd_mobilenet.tflite
+   (Or update the path in lib/services/object_detection_service.dart)
+
+3. Place it in this directory (assets/models/)
+
+4. The model should be:
+   - A .tflite file (TensorFlow Lite format)
+   - Trained for object detection (not classification!)
+   - Preferably quantized for faster inference
+   - Around 30-100MB in size
+
+EXAMPLE MODEL DOWNLOAD:
+=======================
+
+Using wget/curl:
+  wget https://tfhub.dev/google/lite-model/object_detection/mobile_ssd/1?lite-format=tflite
+  mv "1?lite-format=tflite" ssd_mobilenet.tflite
+
+Or visit TensorFlow Lite's hosted models page and download the model manually.
+
+NOTES:
+======
+- The labels.txt file is already provided with COCO dataset labels
+- If using a model trained on different dataset, provide your own labels.txt
+- Update ObjectDetectionService.inputSize if your model uses different input dimensions
+- Check the model's documentation for input/output tensor specifications
+
+After adding the model, you can run:
+  flutter run --release
