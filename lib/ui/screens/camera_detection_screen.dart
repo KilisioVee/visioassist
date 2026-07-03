@@ -24,6 +24,7 @@ class _CameraDetectionScreenState extends State<CameraDetectionScreen>
   List<CameraDescription> _cameras = [];
   int _currentCameraIndex = 0;
   bool _showPermissionError = false;
+  double _currentZoom = 1.0;
 
   @override
   void initState() {
@@ -73,13 +74,25 @@ class _CameraDetectionScreenState extends State<CameraDetectionScreen>
     try {
       await _cameraController.initialize();
 
+      // Ensure a sensible default zoom level if available
+      try {
+        final minZoom = await _cameraController.getMinZoomLevel();
+        final maxZoom = await _cameraController.getMaxZoomLevel();
+        _currentZoom = (1.0).clamp(minZoom, maxZoom);
+        await _cameraController.setZoomLevel(_currentZoom);
+      } catch (_) {
+        // ignore - not all platforms support zoom queries
+      }
+
       if (mounted) {
         setState(() {
           _isCameraInitialized = true;
         });
 
-        // Start image stream for detection
-        _startDetectionStream();
+        // Start image stream if detection is currently running
+        if (_isDetectionRunning) {
+          _startDetectionStream();
+        }
       }
     } catch (e) {
       _showSnackBar('Error initializing camera controller: $e');
@@ -87,11 +100,17 @@ class _CameraDetectionScreenState extends State<CameraDetectionScreen>
   }
 
   void _startDetectionStream() {
-    _cameraController.startImageStream((CameraImage image) async {
-      if (!_isDetectionRunning) return;
+    if (_cameraController.value.isStreamingImages) {
+      return; // Already streaming
+    }
 
-      final viewModel = context.read<DetectionViewModel>();
+    final viewModel = context.read<DetectionViewModel>();
+
+    _cameraController.startImageStream((CameraImage image) async {
+      if (!_isDetectionRunning || !mounted) return;
+
       await viewModel.detectOnFrame(image);
+      if (!mounted) return;
       viewModel.notifyDetectionsUpdated();
     });
   }
@@ -110,6 +129,12 @@ class _CameraDetectionScreenState extends State<CameraDetectionScreen>
     setState(() {
       _isDetectionRunning = !_isDetectionRunning;
     });
+
+    if (!_isDetectionRunning) {
+      _cameraController.stopImageStream();
+    } else {
+      _startDetectionStream();
+    }
   }
 
   void _showSnackBar(String message) {
@@ -135,9 +160,12 @@ class _CameraDetectionScreenState extends State<CameraDetectionScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+
     if (_isCameraInitialized) {
+      _cameraController.stopImageStream();
       _cameraController.dispose();
     }
+
     super.dispose();
   }
 
@@ -220,53 +248,77 @@ class _CameraDetectionScreenState extends State<CameraDetectionScreen>
       ),
       body: Column(
         children: [
-          // Camera Preview with Detections
+          // Camera Preview with Detections (center-cropped square to match 1:1 model input)
           Expanded(
-            child: Stack(
-              children: [
-                // Camera feed
-                CameraPreview(_cameraController),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final side = constraints.maxWidth < constraints.maxHeight
+                    ? constraints.maxWidth
+                    : constraints.maxHeight;
 
-                // Detection overlay
-                Consumer<DetectionViewModel>(
-                  builder: (context, viewModel, child) {
-                    return CustomPaint(
-                      painter: DetectionPainter(
-                        detections: viewModel.detections,
-                        showLabels: viewModel.showLabels,
-                      ),
-                      size: Size.infinite,
-                    );
-                  },
-                ),
-
-                // Detections counter
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: Consumer<DetectionViewModel>(
-                    builder: (context, viewModel, child) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '${viewModel.detections.length} objects',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                return Center(
+                  child: SizedBox(
+                    width: side,
+                    height: side,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Camera feed (center-cropped by container)
+                        ClipRect(
+                          child: FittedBox(
+                            fit: BoxFit.cover,
+                            child: SizedBox(
+                              width: _cameraController.value.previewSize?.height ?? side,
+                              height: _cameraController.value.previewSize?.width ?? side,
+                              child: CameraPreview(_cameraController),
+                            ),
                           ),
                         ),
-                      );
-                    },
+
+                        // Detection overlay
+                        Consumer<DetectionViewModel>(
+                          builder: (context, viewModel, child) {
+                            return CustomPaint(
+                              painter: DetectionPainter(
+                                detections: viewModel.detections,
+                                showLabels: viewModel.showLabels,
+                              ),
+                              size: Size(side, side),
+                            );
+                          },
+                        ),
+
+                        // Detections counter
+                        Positioned(
+                          top: 16,
+                          right: 16,
+                          child: Consumer<DetectionViewModel>(
+                            builder: (context, viewModel, child) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.6),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '${viewModel.detections.length} objects',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                );
+              },
             ),
           ),
 

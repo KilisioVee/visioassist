@@ -11,9 +11,22 @@ class PermissionUtils {
 
   /// Request photos permission (gallery access)
   /// Returns true if permission is granted
+  /// Handles both Android 13+ (READ_MEDIA_IMAGES) and earlier versions (READ_EXTERNAL_STORAGE)
   static Future<bool> requestPhotosPermission() async {
-    final status = await Permission.photos.request();
-    return status.isGranted;
+    try {
+      // Try the new permission first (Android 13+)
+      PermissionStatus status = await Permission.photos.request();
+      
+      // If it's denied, and we're on an older Android version, try storage permission
+      if (!status.isGranted) {
+        status = await Permission.storage.request();
+      }
+      
+      return status.isGranted;
+    } catch (e) {
+      print('Error requesting photos permission: $e');
+      return false;
+    }
   }
 
   /// Check if camera permission is granted
@@ -23,9 +36,23 @@ class PermissionUtils {
   }
 
   /// Check if photos permission is granted
+  /// Checks both READ_MEDIA_IMAGES and READ_EXTERNAL_STORAGE depending on Android version
   static Future<bool> hasPhotosPermission() async {
-    final status = await Permission.photos.status;
-    return status.isGranted;
+    try {
+      // Check photos permission first (Android 13+)
+      PermissionStatus status = await Permission.photos.status;
+      
+      if (status.isGranted) {
+        return true;
+      }
+      
+      // Fall back to storage permission check (Android 12 and below)
+      status = await Permission.storage.status;
+      return status.isGranted;
+    } catch (e) {
+      print('Error checking photos permission: $e');
+      return false;
+    }
   }
 
   /// Open app settings for permission management
@@ -33,3 +60,4 @@ class PermissionUtils {
     await openAppSettings();
   }
 }
+

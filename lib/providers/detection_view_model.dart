@@ -20,7 +20,7 @@ class DetectionViewModel extends ChangeNotifier {
   bool _isLoading = false;
   bool _isDetecting = false;
   String? _errorMessage;
-  double _confidenceThreshold = 0.5;
+  double _confidenceThreshold = 0.3;
   bool _showLabels = true;
 
   // Getters
@@ -88,10 +88,18 @@ class DetectionViewModel extends ChangeNotifier {
     try {
       _detections = await _detectionService.detectOnFrame(
         frame,
-        confidenceThreshold: _confidenceThreshold,
+        confidenceThreshold: 0.1, // Lowered threshold to debug
       );
+      print('DetectionViewModel: Frame detection completed');
+      print('DetectionViewModel: Detected ${_detections.length} objects');
+      if (_detections.isNotEmpty) {
+        for (int i = 0; i < _detections.length && i < 3; i++) {
+          print('  - Detection $i: ${_detections[i].label} (confidence: ${_detections[i].confidence.toStringAsFixed(3)})');
+        }
+      }
     } catch (e) {
       _errorMessage = 'Frame detection failed: $e';
+      print('DetectionViewModel: Error in detectOnFrame: $e');
     }
   }
 

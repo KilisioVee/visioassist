@@ -209,200 +209,198 @@ class _GalleryDetectionScreenState extends State<GalleryDetectionScreen> {
   Widget _buildDetectionResultsView() {
     return Consumer<DetectionViewModel>(
       builder: (context, viewModel, child) {
-        return SingleChildScrollView(
-          child: Column(
-            children: [
-              // Image with detection overlay
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Stack(
-                    children: [
-                      Image.file(
-                        _selectedImage!,
-                        fit: BoxFit.cover,
-                      ),
-                      if (!viewModel.isDetecting)
-                        CustomPaint(
-                          painter: DetectionPainter(
-                            detections: viewModel.detections,
-                            showLabels: viewModel.showLabels,
-                          ),
-                          size: Size.infinite,
+        return Column(
+          children: [
+            // Image with detection overlay
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Stack(
+                  children: [
+                    Image.file(
+                      _selectedImage!,
+                      fit: BoxFit.cover,
+                    ),
+                    if (!viewModel.isDetecting)
+                      CustomPaint(
+                        painter: DetectionPainter(
+                          detections: viewModel.detections,
+                          showLabels: viewModel.showLabels,
                         ),
-                      if (viewModel.isDetecting)
-                        Positioned.fill(
-                          child: Container(
-                            color: Colors.black.withOpacity(0.3),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
+                        size: Size.infinite,
+                      ),
+                    if (viewModel.isDetecting)
+                      Positioned.fill(
+                        child: Container(
+                          color: Colors.black.withOpacity(0.3),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
                               ),
                             ),
                           ),
                         ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Error message (if any)
+            if (viewModel.errorMessage != null)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    border: Border.all(color: Colors.red),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error, color: Colors.red),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          viewModel.errorMessage!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
 
-              // Error message (if any)
-              if (viewModel.errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
-                      border: Border.all(color: Colors.red),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error, color: Colors.red),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            viewModel.errorMessage!,
-                            style: const TextStyle(color: Colors.red),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-              // Detection results
-              if (viewModel.detections.isNotEmpty && !viewModel.isDetecting)
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Detected Objects',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+            // Detection results
+            if (viewModel.detections.isNotEmpty && !viewModel.isDetecting)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Detected Objects',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(height: 12),
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: viewModel.detections.length,
-                        itemBuilder: (context, index) {
-                          final detection = viewModel.detections[index];
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.deepPurple.withOpacity(0.05),
-                              border: Border.all(
-                                color: Colors.deepPurple.withOpacity(0.2),
-                              ),
-                              borderRadius: BorderRadius.circular(8),
+                    ),
+                    const SizedBox(height: 12),
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: viewModel.detections.length,
+                      itemBuilder: (context, index) {
+                        final detection = viewModel.detections[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.deepPurple.withOpacity(0.05),
+                            border: Border.all(
+                              color: Colors.deepPurple.withOpacity(0.2),
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      detection.label,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Box: (${(detection.box.left * 100).toStringAsFixed(1)}%, '
-                                      '${(detection.box.top * 100).toStringAsFixed(1)}%)',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.deepPurple,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    detection.confidenceString,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    detection.label,
                                     style: const TextStyle(
-                                      color: Colors.white,
                                       fontWeight: FontWeight.bold,
+                                      fontSize: 16,
                                     ),
                                   ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Box: (${(detection.box.left * 100).toStringAsFixed(1)}%, '
+                                    '${(detection.box.top * 100).toStringAsFixed(1)}%)',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
                                 ),
-                              ],
-                            ),
-                          );
-                        },
+                                decoration: BoxDecoration(
+                                  color: Colors.deepPurple,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  detection.confidenceString,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+            // No detections message
+            if (viewModel.detections.isEmpty &&
+                !viewModel.isDetecting &&
+                viewModel.errorMessage == null)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.1),
+                    border: Border.all(color: Colors.amber),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info, color: Colors.amber),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'No objects detected in this image',
+                          style: TextStyle(color: Colors.amber),
+                        ),
                       ),
                     ],
                   ),
                 ),
+              ),
 
-              // No detections message
-              if (viewModel.detections.isEmpty &&
-                  !viewModel.isDetecting &&
-                  viewModel.errorMessage == null)
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.withOpacity(0.1),
-                      border: Border.all(color: Colors.amber),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.info, color: Colors.amber),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Text(
-                            'No objects detected in this image',
-                            style: TextStyle(color: Colors.amber),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-              // Action buttons
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton.icon(
-                    onPressed: _pickAnotherImage,
-                    icon: const Icon(Icons.image_search),
-                    label: const Text('Pick Another Image'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      foregroundColor: Colors.white,
-                    ),
+            // Action buttons
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton.icon(
+                  onPressed: _pickAnotherImage,
+                  icon: const Icon(Icons.image_search),
+                  label: const Text('Pick Another Image'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    foregroundColor: Colors.white,
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );
