@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
+import '../../models/detection.dart';
 import '../../providers/detection_view_model.dart';
 import '../../utils/permission_utils.dart';
 import '../../utils/detection_painter.dart';
+import '../../utils/selected_detection_painter.dart';
 
 /// Screen for detecting objects in images from the gallery.
 ///
@@ -75,8 +77,18 @@ class _GalleryDetectionScreenState extends State<GalleryDetectionScreen> {
       SnackBar(content: Text(message)),
     );
   }
+  void _openDetectionPreview(Detection detection) {
+    if (_selectedImage == null) return;
 
-  @override
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DetectionPreviewScreen(
+          imageFile: _selectedImage!,
+          detection: detection,
+        ),
+      ),
+    );
+  }  @override
   Widget build(BuildContext context) {
     if (_showPermissionError) {
       return Scaffold(
@@ -209,200 +221,211 @@ class _GalleryDetectionScreenState extends State<GalleryDetectionScreen> {
   Widget _buildDetectionResultsView() {
     return Consumer<DetectionViewModel>(
       builder: (context, viewModel, child) {
-        return Column(
-          children: [
-            // Image with detection overlay
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Stack(
-                  children: [
-                    Image.file(
-                      _selectedImage!,
-                      fit: BoxFit.cover,
-                    ),
-                    if (!viewModel.isDetecting)
-                      CustomPaint(
-                        painter: DetectionPainter(
-                          detections: viewModel.detections,
-                          showLabels: viewModel.showLabels,
+        return SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: SizedBox(
+                    height: 320,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.file(
+                          _selectedImage!,
+                          fit: BoxFit.cover,
                         ),
-                        size: Size.infinite,
-                      ),
-                    if (viewModel.isDetecting)
-                      Positioned.fill(
-                        child: Container(
-                          color: Colors.black.withOpacity(0.3),
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
+                        if (!viewModel.isDetecting)
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: DetectionPainter(
+                                detections: viewModel.detections,
+                                showLabels: viewModel.showLabels,
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Error message (if any)
-            if (viewModel.errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
-                    border: Border.all(color: Colors.red),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error, color: Colors.red),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          viewModel.errorMessage!,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-            // Detection results
-            if (viewModel.detections.isNotEmpty && !viewModel.isDetecting)
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Detected Objects',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: viewModel.detections.length,
-                      itemBuilder: (context, index) {
-                        final detection = viewModel.detections[index];
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.deepPurple.withOpacity(0.05),
-                            border: Border.all(
-                              color: Colors.deepPurple.withOpacity(0.2),
+                        if (viewModel.isDetecting)
+                          Positioned.fill(
+                            child: Container(
+                              color: Colors.black.withOpacity(0.3),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              ),
                             ),
-                            borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              if (viewModel.errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      border: Border.all(color: Colors.red),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error, color: Colors.red),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            viewModel.errorMessage!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              if (viewModel.detections.isNotEmpty && !viewModel.isDetecting)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Detected Objects',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: viewModel.detections.length,
+                        itemBuilder: (context, index) {
+                          final detection = viewModel.detections[index];
+                          return InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: () => _openDetectionPreview(detection),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.deepPurple.withOpacity(0.05),
+                                border: Border.all(
+                                  color: Colors.deepPurple.withOpacity(0.2),
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    detection.label,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          detection.label,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Box: (${(detection.box.left * 100).toStringAsFixed(1)}%, '
+                                              '${(detection.box.top * 100).toStringAsFixed(1)}%)',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Box: (${(detection.box.left * 100).toStringAsFixed(1)}%, '
-                                    '${(detection.box.top * 100).toStringAsFixed(1)}%)',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.deepPurple,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      detection.confidenceString,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.deepPurple,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  detection.confidenceString,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
-            // No detections message
-            if (viewModel.detections.isEmpty &&
-                !viewModel.isDetecting &&
-                viewModel.errorMessage == null)
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.1),
-                    border: Border.all(color: Colors.amber),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.info, color: Colors.amber),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text(
-                          'No objects detected in this image',
-                          style: TextStyle(color: Colors.amber),
-                        ),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
                 ),
-              ),
 
-            // Action buttons
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton.icon(
-                  onPressed: _pickAnotherImage,
-                  icon: const Icon(Icons.image_search),
-                  label: const Text('Pick Another Image'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
-                    foregroundColor: Colors.white,
+              if (viewModel.detections.isEmpty &&
+                  !viewModel.isDetecting &&
+                  viewModel.errorMessage == null)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withOpacity(0.1),
+                      border: Border.all(color: Colors.amber),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info, color: Colors.amber),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'No objects detected in this image',
+                            style: TextStyle(color: Colors.amber),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton.icon(
+                    onPressed: _pickAnotherImage,
+                    icon: const Icon(Icons.image_search),
+                    label: const Text('Pick Another Image'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.deepPurple,
+                      foregroundColor: Colors.white,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
-  }
-}
+  }}
