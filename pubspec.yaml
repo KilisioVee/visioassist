@@ -76,9 +76,9 @@ flutter:
 
   # Object Detection Model Assets
   # Note: Add your TensorFlow Lite model file to assets/models/
-  # assets:
-  #   - assets/models/ssd_mobilenet.tflite
-  #   - assets/models/labels.txt
+  assets:
+    - assets/models/ssd_mobilenet.tflite
+    - assets/models/labels.txt
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
